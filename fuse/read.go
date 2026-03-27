@@ -31,7 +31,11 @@ func ReadResultData(b []byte) ReadResult {
 }
 
 func ReadResultFd(fd uintptr, off int64, sz int) ReadResult {
-	return &readResultFd{fd, off, sz}
+	return &readResultFd{Fd: fd, Off: off, Sz: sz}
+}
+
+func ReadResultFdWithDone(fd uintptr, off int64, sz int, done func()) ReadResult {
+	return &readResultFd{Fd: fd, Off: off, Sz: sz, done: done}
 }
 
 // ReadResultFd is the read return for zero-copy file data.
@@ -45,6 +49,8 @@ type readResultFd struct {
 	// Size of data to be loaded. Actual data available may be
 	// less at the EOF.
 	Sz int
+
+	done func()
 }
 
 // Reads raw bytes from file descriptor if necessary, using the passed
@@ -72,4 +78,8 @@ func (r *readResultFd) Size() int {
 }
 
 func (r *readResultFd) Done() {
+	if r.done != nil {
+		r.done()
+		r.done = nil
+	}
 }
